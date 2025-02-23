@@ -5,6 +5,13 @@ var btn = document.getElementById("btn");
 var stopBtn = document.getElementById("stop");
 var input = document.getElementById("upload");
 var save = document.getElementById("save");
+var newFile = document.getElementById("new");
+var fileSelectDiv = document.getElementById("container");
+var newFileName = document.getElementById("new-name");
+
+code.disabled = true;
+title.disabled = true;
+newFileName.disabled = true;
 
 const outputHandler = () => {
     // output.innerHTML = code.value
@@ -29,6 +36,17 @@ const stopHandler = () => {
     showCanvas = null;
 };
 
+const newFileHandler = () => {
+    if (newFileName.value == "") {
+        alert("공백 파일은 만들 수 없습니다.");
+        return;
+    }
+    title.value = newFileName.value;
+    code.value = "";
+    saveTextFile();
+    alert("파일이 생성되었습니다. 사용하려면 다시 폴더를 불러와주세요.");
+};
+
 const focusHandler = () => {
     isFocused = !isFocused;
 }
@@ -37,12 +55,49 @@ const focusTitleHandler = () => {
     isFocusedTitle = !isFocusedTitle;
 }
 
+var goldlangFiles = {};
+
+const showTextFile = () => {
+    const selectedFile = input.files;
+    console.log(selectedFile)
+    goldlangFiles = {};
+    fileSelectDiv.innerHTML = "";
+    
+    for (var file of selectedFile) {
+        const fileName = file.name;
+        goldlangFiles[fileName] = file;
+        const extension = fileName.split(".")[1];
+        const fileBtn = document.createElement("button");
+        fileBtn.textContent = fileName;
+        fileBtn.addEventListener("click", function() {
+            if (extension == "txt") {
+                var reader = new FileReader();
+                reader.readAsText(goldlangFiles[fileBtn.textContent], "UTF-8");
+                reader.onload = function() {
+                    code.value = reader.result;
+                }
+                title.value = fileName.split(".")[0];
+                code.disabled = false;
+                title.disabled = false;
+            } else {
+                code.value = "";
+                title.value = "";
+                code.disabled = true;
+                title.disabled = true;
+            }
+        });
+        fileSelectDiv.appendChild(fileBtn);
+    }
+    newFileName.disabled = false;
+}
+
 btn.addEventListener("click", outputHandler);
 stopBtn.addEventListener("click", stopHandler);
 code.addEventListener("focus", focusHandler);
 code.addEventListener("blur", focusHandler);
 title.addEventListener("focus", focusTitleHandler);
 title.addEventListener("blur", focusTitleHandler);
+newFile.addEventListener("click", newFileHandler);
 
 //변수 등 저장공간
 var varsDict = {};
@@ -97,17 +152,19 @@ const moveMouseHandler = (e) => {
 }
 
 // 저장 및 불러오기
-input.addEventListener("change", getTextFile);
-function getTextFile() {
-    const selectedFile = input.files;
+input.addEventListener("change", showTextFile);
+// function getTextFile() {
+//     const selectedFile = input.files;
 
-    var reader = new FileReader();
-    reader.onload = function() {
-        code.value = reader.result;
-    }
-    reader.readAsText(selectedFile[0], "UTF-8");
-    title.value = selectedFile[0].name.slice(0, -4);
-}
+//     showTextFile();
+
+//     var reader = new FileReader();
+//     reader.onload = function() {
+//         code.value = reader.result;
+//     }
+//     reader.readAsText(selectedFile[0], "UTF-8");
+//     title.value = selectedFile[0].name.slice(0, -4);
+// }
 
 save.addEventListener("click", saveTextFile);
 function saveTextFile() {
@@ -125,6 +182,8 @@ function saveTextFile() {
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
     }, 100);
+
+    showTextFile();
 }
 
 document.addEventListener("keydown", function(event) {
