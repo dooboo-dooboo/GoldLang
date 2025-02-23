@@ -9,15 +9,26 @@
 </head>
 <body>
     <div><a href="tutorial.html" target="_blank">튜토리얼 페이지 열기</a></div>
-    <h2>파일 업로드</h2>
-    <input type="file" id="upload" accept=".txt">
+    <h2>작업 폴더 선택</h2>
+    <input type="file" id="upload" webkitdirectory>
+    <div>
+        <h2>새로 만들기</h2>
+        <input type="text" placeholder="새 프로젝트의 이름을 입력해 주세요" id="new-name">
+        <button id="new">골랭 파일 생성</button>
+    </div>
+    
+    <div id="container">
+        <h2>현재 폴더에 열린 파일들</h2>
+        <br>
+    </div>
+    <h2>현재 편집중인 파일</h2>
     <input type="text" placeholder="제목을 입력하세요" id="title" class="codes">
-    <h1>코드를 입력하세요</h1>
+    <h2>코드를 입력하세요</h2>
     <textarea id="code" class="codes"></textarea>
     <button id="btn">실행</button>
     <button id="stop">정지</button>
     <button id="save">저장</button>
-    <h1>결과</h1>
+    <h2>결과</h2>
     <div id="output"></div>
 
     <script defer type="text/javascript" src="script.js"></script>
