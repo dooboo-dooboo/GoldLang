@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -142,6 +142,10 @@ GAME_CREATE_CIRCLE<50,75,35,55,155,255,1>;
 게임 화면 위에 원을 그립니다. 반지름이 35인 원을 좌표 (50, 75) 위치에 그립니다.
 rgb색상과 좌표 기준 등은 모두 GAME_CREATE_RECT 명령어와 동일합니다.
 
+GAME_DRAW_IMAGE<img, 100, 200, 50, 60>;
+게임 화면 위에 img 이름의 이미지 변수를 가로 50, 세로 60의 크기로 좌표 (100, 200)에 그립니다.
+이 명령어는 FILE 모듈을 불러와야 사용할 수 있습니다.
+
 GAME_CLEAN;
 게임 화면 내부 요소를 모두 지웁니다.
 
@@ -180,6 +184,11 @@ MATH_RANDOM<1,100>
 
 MATH_ABS<a>
 a의 절댓값을 반환합니다.
+
+-----FILE 모듈-----
+SET_IMAGE img IS imageName;
+이 코드는 img라는 이미지 변수 내부에 imageName이라는 이름을 가진 파일을 넣습니다.
+프로젝트 폴더 내부 스크립트와 같은 공간에 있는 이미지만 저장할 수 있습니다.
         </xmp>
     </div>
 </body>
