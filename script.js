@@ -56,10 +56,26 @@ const focusTitleHandler = () => {
 }
 
 var goldlangFiles = {};
+var imageFiles = {};
+
+function saveImageFiles() {
+    const selectedFile = input.files;
+    imageFiles = {};
+    for (var file of selectedFile) {
+        const fileName = file.name;
+        imageFiles[fileName] = file;
+        const extension = fileName.split(".")[1];
+        var reader = new FileReader();
+        reader.readAsDataURL(imageFiles[fileName]);
+        if (file.name.split(".")[1] == "png" || file.name.split(".")[1] == "jpg") {
+            autoImgFiles[fileName.split(".")[0]] = file;
+        }
+    
+    }
+}
 
 const showTextFile = () => {
     const selectedFile = input.files;
-    console.log(selectedFile)
     goldlangFiles = {};
     fileSelectDiv.innerHTML = "";
     
@@ -75,10 +91,19 @@ const showTextFile = () => {
                 reader.readAsText(goldlangFiles[fileBtn.textContent], "UTF-8");
                 reader.onload = function() {
                     code.value = reader.result;
+                    title.value = fileName.split(".")[0];
+                    code.disabled = false;
+                    title.disabled = false;
                 }
-                title.value = fileName.split(".")[0];
-                code.disabled = false;
-                title.disabled = false;
+            } else if (extension == "png" || extension == "jpg") {
+                var reader = new FileReader();
+                reader.readAsDataURL(goldlangFiles[fileBtn.textContent]);
+                reader.onload = function() {
+                    title.value = fileName.split(".")[0];
+                    code.value = "";
+                    code.disabled = true;
+                    title.disabled = true;
+                }
             } else {
                 code.value = "";
                 title.value = "";
@@ -123,6 +148,10 @@ var mouseY = 0;
 // INPUT 모듈 변수
 var fps = 10;
 
+// FILE 모듈 변수'
+var autoImgFiles = {};
+var imgFiles = {};
+
 // 기타 변수
 var nowLine = 0;
 var totalCode;
@@ -141,9 +170,9 @@ var isWait = false;
 var nowClassVar = "";
 
 const BRACLET_CODE = ["IF", "REPEAT", "FUNCTION", "WHILE", "CLASS", "INPUT_GETKEY", "INPUT_KEYUP"];
-const VALUE_CODE = ["GET", "ADD", "SUB", "MUL", "DIV", "JOIN", "BIGGER", "SMALLER", "SAME", "NOT", "ALL", "OR", "INDEX", "LENGTH", "GAME_SIZE", "GAME_CREATE_RECT", "GAME_CREATE_CIRCLE", "MATH_RANDOM", "SET_FPS", "GAME_FPS", "CHANGE", "NEWLIST", "DELETE", "MATH_ABS", "GET_CLASS_VAR", "CHANGE_CLASS_LIST", "NEW_CLASS_LIST", "DELETE_CLASS", "GAME_MOUSE_X", "GAME_MOUSE_Y"];
+const VALUE_CODE = ["GET", "ADD", "SUB", "MUL", "DIV", "JOIN", "BIGGER", "SMALLER", "SAME", "NOT", "ALL", "OR", "INDEX", "LENGTH", "GAME_SIZE", "GAME_CREATE_RECT", "GAME_CREATE_CIRCLE", "MATH_RANDOM", "SET_FPS", "GAME_FPS", "CHANGE", "NEWLIST", "DELETE", "MATH_ABS", "GET_CLASS_VAR", "CHANGE_CLASS_LIST", "NEW_CLASS_LIST", "DELETE_CLASS", "GAME_MOUSE_X", "GAME_MOUSE_Y", "GAME_DRAW_IMAGE"];
 const VARS_TYPE = ["VARS", "LIST", "CLASS", "CLASS_LIST"];
-const MODULES = ["GAME", "INPUT", "MATH"];
+const MODULES = ["GAME", "INPUT", "MATH", "FILE"];
 const INPUT_KEY = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"];
 
 const moveMouseHandler = (e) => {
@@ -153,6 +182,7 @@ const moveMouseHandler = (e) => {
 
 // 저장 및 불러오기
 input.addEventListener("change", showTextFile);
+input.addEventListener("change", saveImageFiles);
 // function getTextFile() {
 //     const selectedFile = input.files;
 
@@ -184,6 +214,7 @@ function saveTextFile() {
     }, 100);
 
     showTextFile();
+    saveImageFiles();
 }
 
 document.addEventListener("keydown", function(event) {
@@ -774,6 +805,20 @@ function doProgramLine(lineCode) {
         }
     }
 
+    // FILE 모듈
+    if (usingModules.indexOf("FILE") >= 0) {
+        // SET_IMAGE
+        if (elementBySpace.length >= 4 && elementBySpace[0] == "SET_IMAGE" && elementBySpace[2] == "IS") {
+            if (!(elementBySpace[3].slice(0, -1) in autoImgFiles)) {
+                ShowError(23);
+                return;
+            }
+            const newImg = new Image();
+            newImg.src = window.URL.createObjectURL(autoImgFiles[elementBySpace[3].slice(0, -1)]);
+            imgFiles[elementBySpace[1]] = newImg;
+        }
+    }
+
 }
 
 // 프로그램 실행 전체 부분
@@ -797,6 +842,7 @@ function startProgram(contents) {
     funcInClassDict = {};
     nowClassVars = {};
     varsInClassFunc = {};
+    imgFiles = {};
 
     if (usingModules.indexOf("GAME") >= 0) {
         if (showCanvas != null) {
@@ -1368,6 +1414,34 @@ function doChangeValue(contents, codeKeyword) {
             showCanvas.getContext("2d").stroke();
             resultText = "";
             break;
+        case "GAME_DRAW_IMAGE":
+            if (usingModules.indexOf("GAME") < 0 || usingModules.indexOf("FILE") < 0) {
+                ShowError(22);
+                return [isDoing, ""];
+            }
+            var drawImageInfo = resultText.slice(16, -1).split(",");
+            if (drawImageInfo.length < 5) {
+                ShowError(6);
+                return [isDoing, ""];
+            }
+            var imgName = drawImageInfo[0];
+            var posX = drawImageInfo[1];
+            var posY = drawImageInfo[2];
+            var sizeX = drawImageInfo[3];
+            var sizeY = drawImageInfo[4];
+
+            if (isNaN(Number(posX) + Number(posY) + Number(sizeX) + Number(sizeY))) {
+                ShowError(3);
+                return [isDoing, ""];
+            }
+            if (!imgName in imgFiles) {
+                ShowError(1);
+                return [isDoing, ""];
+            }
+            isDoing = true;
+            showCanvas.getContext("2d").drawImage(imgFiles[imgName], posX - sizeX / 2, posY - sizeY / 2, sizeX, sizeY);
+            resultText = "";
+            break;
         case "GAME_MOUSE_X":
             if (usingModules.indexOf("GAME") < 0) {
                 ShowError(22);
@@ -1507,6 +1581,9 @@ function ShowError(errorNum) {
             break;
         case 22:
             alert((nowLine + 1) + "번째 줄에서 오류 발생 : 필요한 모듈이 불러와지지 않았습니다.");
+            break;
+        case 23:
+            alert((nowLine + 1) + "번째 줄에서 오류 발생 : 해당 이름의 파일이 존재하지 않습니다.");
             break;
     }
     
