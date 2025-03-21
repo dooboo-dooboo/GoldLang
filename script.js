@@ -69,6 +69,11 @@ function saveImageFiles() {
         reader.readAsDataURL(imageFiles[fileName]);
         if (file.name.split(".")[1] == "png" || file.name.split(".")[1] == "jpg") {
             autoImgFiles[fileName.split(".")[0]] = file;
+            const newAutoImg = new Image();
+            newAutoImg.src = window.URL.createObjectURL(autoImgFiles[fileName.split(".")[0]]);
+            newAutoImg.onload = (e) => {
+                autoImgFilesInfo[fileName.split(".")[0]] = [newAutoImg.width, newAutoImg.height];
+            }
         }
     
     }
@@ -151,6 +156,8 @@ var fps = 10;
 // FILE 모듈 변수'
 var autoImgFiles = {};
 var imgFiles = {};
+var autoImgFilesInfo = {};
+var imgFilesInfo = {};
 
 // 기타 변수
 var nowLine = 0;
@@ -170,7 +177,8 @@ var isWait = false;
 var nowClassVar = "";
 
 const BRACLET_CODE = ["IF", "REPEAT", "FUNCTION", "WHILE", "CLASS", "INPUT_GETKEY", "INPUT_KEYUP"];
-const VALUE_CODE = ["GET", "ADD", "SUB", "MUL", "DIV", "JOIN", "BIGGER", "SMALLER", "SAME", "NOT", "ALL", "OR", "INDEX", "LENGTH", "GAME_SIZE", "GAME_CREATE_RECT", "GAME_CREATE_CIRCLE", "MATH_RANDOM", "SET_FPS", "GAME_FPS", "CHANGE", "NEWLIST", "DELETE", "MATH_ABS", "GET_CLASS_VAR", "CHANGE_CLASS_LIST", "NEW_CLASS_LIST", "DELETE_CLASS", "GAME_MOUSE_X", "GAME_MOUSE_Y", "GAME_DRAW_IMAGE"];
+const VALUE_CODE = ["GET", "ADD", "SUB", "MUL", "DIV", "JOIN", "BIGGER", "SMALLER", "SAME", "NOT", "ALL", "OR", "INDEX", "LENGTH", "GAME_SIZE", "GAME_CREATE_RECT", "GAME_CREATE_CIRCLE", "MATH_RANDOM", "SET_FPS", "GAME_FPS", "CHANGE", "NEWLIST", "DELETE", "MATH_ABS", "GET_CLASS_VAR", "CHANGE_CLASS_LIST", "NEW_CLASS_LIST", "DELETE_CLASS", "GAME_MOUSE_X", "GAME_MOUSE_Y", "GAME_DRAW_IMAGE", "IMAGE_WIDTH", "IMAGE_HEIGHT"];
+const DIVIDING_CHAR = [",", "<", " ", '"'];
 const VARS_TYPE = ["VARS", "LIST", "CLASS", "CLASS_LIST"];
 const MODULES = ["GAME", "INPUT", "MATH", "FILE"];
 const INPUT_KEY = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"];
@@ -816,6 +824,7 @@ function doProgramLine(lineCode) {
             const newImg = new Image();
             newImg.src = window.URL.createObjectURL(autoImgFiles[elementBySpace[3].slice(0, -1)]);
             imgFiles[elementBySpace[1]] = newImg;
+            imgFilesInfo[elementBySpace[1]] = autoImgFilesInfo[elementBySpace[3].slice(0, -1)]
         }
     }
 
@@ -843,6 +852,7 @@ function startProgram(contents) {
     nowClassVars = {};
     varsInClassFunc = {};
     imgFiles = {};
+    imgFilesInfo = {};
 
     if (usingModules.indexOf("GAME") >= 0) {
         if (showCanvas != null) {
@@ -890,16 +900,40 @@ function changeValue(contents) {
                 var endKeyword = startCount;
                 while (startCount > 0) {
                     startCount -= 1;
-                    if (VALUE_CODE.indexOf(resultText.slice(startCount, endKeyword)) >= 0) {
-                        var keyword = resultText.slice(startCount, endKeyword);
-                        var lastValue = doChangeValue(resultText.slice(startCount, endCount + 1), keyword);
-                        resultText = resultText.slice(0, startCount) + lastValue[1] + resultText.slice(endCount + 1);
-                        if (!lastValue[0]) {
-                            isFinished = true;
-                        }
+                    if (DIVIDING_CHAR.indexOf(resultText[startCount - 1]) >= 0) {
                         break;
                     }
                 }
+                if (VALUE_CODE.indexOf(resultText.slice(startCount, endKeyword)) >= 0) {
+                    var keyword = resultText.slice(startCount, endKeyword);
+                    var lastValue = doChangeValue(resultText.slice(startCount, endCount + 1), keyword);
+                    resultText = resultText.slice(0, startCount) + lastValue[1] + resultText.slice(endCount + 1);
+                    if (!lastValue[0]) {
+                        isFinished = true;
+                    }
+                    break;
+                } else {
+                    startCount = -1;
+                    break;
+                }
+                // while (startCount > 0) {
+                //     startCount -= 1;
+                //     var valueCodeCount = 0;
+                //     for (const valueCode of VALUE_CODE) {
+                //         if (resultText.slice(startCount, endKeyword).endsWith(valueCode)) {
+                //             valueCodeCount++;
+                //         }
+                //     }
+                //     if (valueCodeCount == 1 && VALUE_CODE.indexOf(resultText.slice(startCount, endKeyword)) >= 0) {
+                //         var keyword = resultText.slice(startCount, endKeyword);
+                //         var lastValue = doChangeValue(resultText.slice(startCount, endCount + 1), keyword);
+                //         resultText = resultText.slice(0, startCount) + lastValue[1] + resultText.slice(endCount + 1);
+                //         if (!lastValue[0]) {
+                //             isFinished = true;
+                //         }
+                //         break;
+                //     }
+                // }
             }
         }
         if (startCount < 0) {
@@ -1429,6 +1463,7 @@ function doChangeValue(contents, codeKeyword) {
             var posY = drawImageInfo[2];
             var sizeX = drawImageInfo[3];
             var sizeY = drawImageInfo[4];
+            var rotation = 0;
 
             if (isNaN(Number(posX) + Number(posY) + Number(sizeX) + Number(sizeY))) {
                 ShowError(3);
@@ -1438,8 +1473,25 @@ function doChangeValue(contents, codeKeyword) {
                 ShowError(1);
                 return [isDoing, ""];
             }
+
+            if (drawImageInfo.length == 6) {
+                rotation = drawImageInfo[5];
+                if (isNaN(Number(rotation))) {
+                    ShowError(3);
+                    return [isDoing, ""];
+                }
+            }
             isDoing = true;
-            showCanvas.getContext("2d").drawImage(imgFiles[imgName], posX - sizeX / 2, posY - sizeY / 2, sizeX, sizeY);
+            if (drawImageInfo.length < 6) {
+                showCanvas.getContext("2d").drawImage(imgFiles[imgName], posX - sizeX / 2, posY - sizeY / 2, sizeX, sizeY);
+            } else {
+                showCanvas.getContext("2d").save();
+                showCanvas.getContext("2d").translate(posX, posY);
+                showCanvas.getContext("2d").rotate(rotation * Math.PI / 180);
+                showCanvas.getContext("2d").drawImage(imgFiles[imgName], sizeX / -2, sizeY / -2, sizeX, sizeY)
+                showCanvas.getContext("2d").restore();
+            }
+            
             resultText = "";
             break;
         case "GAME_MOUSE_X":
@@ -1503,6 +1555,32 @@ function doChangeValue(contents, codeKeyword) {
 
             isDoing = true;
             resultText = Math.abs(num);
+            break;
+        case "IMAGE_WIDTH":
+            if (usingModules.indexOf("FILE") < 0) {
+                ShowError(22);
+                return [isDoing, ""];
+            }
+            var nowImageInfo = resultText.slice(12, -1);
+            if (!(nowImageInfo in imgFilesInfo)) {
+                ShowError(1);
+                return [isDoing, ""];
+            }
+            isDoing = true;
+            resultText = imgFilesInfo[nowImageInfo][0];
+            break;
+        case "IMAGE_HEIGHT":
+            if (usingModules.indexOf("FILE") < 0) {
+                ShowError(22);
+                return [isDoing, ""];
+            }
+            var nowImageInfo = resultText.slice(13, -1);
+            if (!(nowImageInfo in imgFilesInfo)) {
+                ShowError(1);
+                return [isDoing, ""];
+            }
+            isDoing = true;
+            resultText = imgFilesInfo[nowImageInfo][1];
             break;
         default:
             return [false, ""];
