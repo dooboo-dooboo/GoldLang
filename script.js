@@ -33,6 +33,11 @@ const stopHandler = () => {
             showCanvas.removeEventListener("mousemove", moveMouseHandler);
         }
     }
+    if (usingModules.indexOf("FILE") >= 0) {
+        for (var i = 0; i < playingMp3.length; i++) {
+            playingMp3[i].pause();
+        }
+    }
     showCanvas = null;
 };
 
@@ -57,6 +62,7 @@ const focusTitleHandler = () => {
 
 var goldlangFiles = {};
 var imageFiles = {};
+var audioFiles = {};
 
 function saveImageFiles() {
     const selectedFile = input.files;
@@ -76,6 +82,22 @@ function saveImageFiles() {
             }
         }
     
+    }
+}
+
+function saveMp3Files() {
+    const selectedFile = input.files;
+    mp3Files = {};
+    for (var file of selectedFile) {
+        const fileName = file.name;
+        audioFiles[fileName] = file;
+        var reader = new FileReader();
+        reader.readAsDataURL(audioFiles[fileName]);
+        if (file.name.split(".")[1] == "mp3") {
+            autoMp3Files[fileName.split(".")[0]] = file;
+            const newAutoMp3 = new Audio();
+            newAutoMp3.src = window.URL.createObjectURL(autoMp3Files[fileName.split(".")[0]]);
+        }
     }
 }
 
@@ -158,6 +180,9 @@ var autoImgFiles = {};
 var imgFiles = {};
 var autoImgFilesInfo = {};
 var imgFilesInfo = {};
+var autoMp3Files = {};
+var mp3Files = {};
+var playingMp3 = [];
 
 // 기타 변수
 var nowLine = 0;
@@ -177,7 +202,7 @@ var isWait = false;
 var nowClassVar = "";
 
 const BRACLET_CODE = ["IF", "REPEAT", "FUNCTION", "WHILE", "CLASS", "INPUT_GETKEY", "INPUT_KEYUP"];
-const VALUE_CODE = ["GET", "ADD", "SUB", "MUL", "DIV", "JOIN", "BIGGER", "SMALLER", "SAME", "NOT", "ALL", "OR", "INDEX", "LENGTH", "GAME_SIZE", "GAME_CREATE_RECT", "GAME_CREATE_CIRCLE", "MATH_RANDOM", "SET_FPS", "GAME_FPS", "CHANGE", "NEWLIST", "DELETE", "MATH_ABS", "GET_CLASS_VAR", "CHANGE_CLASS_LIST", "NEW_CLASS_LIST", "DELETE_CLASS", "GAME_MOUSE_X", "GAME_MOUSE_Y", "GAME_DRAW_IMAGE", "IMAGE_WIDTH", "IMAGE_HEIGHT"];
+const VALUE_CODE = ["GET", "ADD", "SUB", "MUL", "DIV", "JOIN", "BIGGER", "SMALLER", "SAME", "NOT", "ALL", "OR", "INDEX", "LENGTH", "GAME_SIZE", "GAME_CREATE_RECT", "GAME_CREATE_CIRCLE", "MATH_RANDOM", "SET_FPS", "GAME_FPS", "CHANGE", "NEWLIST", "DELETE", "MATH_ABS", "GET_CLASS_VAR", "CHANGE_CLASS_LIST", "NEW_CLASS_LIST", "DELETE_CLASS", "GAME_MOUSE_X", "GAME_MOUSE_Y", "GAME_DRAW_IMAGE", "IMAGE_WIDTH", "IMAGE_HEIGHT", "GAME_WRITE"];
 const DIVIDING_CHAR = [",", "<", " ", '"'];
 const VARS_TYPE = ["VARS", "LIST", "CLASS", "CLASS_LIST"];
 const MODULES = ["GAME", "INPUT", "MATH", "FILE"];
@@ -191,6 +216,7 @@ const moveMouseHandler = (e) => {
 // 저장 및 불러오기
 input.addEventListener("change", showTextFile);
 input.addEventListener("change", saveImageFiles);
+input.addEventListener("change", saveMp3Files);
 // function getTextFile() {
 //     const selectedFile = input.files;
 
@@ -223,6 +249,7 @@ function saveTextFile() {
 
     showTextFile();
     saveImageFiles();
+    saveMp3Files();
 }
 
 document.addEventListener("keydown", function(event) {
@@ -826,6 +853,41 @@ function doProgramLine(lineCode) {
             imgFiles[elementBySpace[1]] = newImg;
             imgFilesInfo[elementBySpace[1]] = autoImgFilesInfo[elementBySpace[3].slice(0, -1)]
         }
+
+        // SET_BACKGROUND_MUSIC
+        if (elementBySpace.length >= 2 && elementBySpace[0] == "SET_BACKGROUND_MUSIC") {
+            if (!(elementBySpace[1].slice(0, -1) in autoMp3Files)) {
+                ShowError(23);
+                return;
+            }
+            const newAudio = new Audio();
+            newAudio.src = window.URL.createObjectURL(autoMp3Files[elementBySpace[1].slice(0, -1)]);
+            newAudio.loop = true;
+            mp3Files[elementBySpace[1].slice(0, -1)] = newAudio;
+            playingMp3.push(newAudio);
+            newAudio.play();
+        }
+
+        // SET_AUDIO
+        if (elementBySpace.length >= 4 && elementBySpace[0] == "SET_AUDIO" && elementBySpace[2] == "IS") {
+            if (!(elementBySpace[3].slice(0, -1) in autoMp3Files)) {
+                ShowError(23);
+                return;
+            }
+            const newAudio = new Audio();
+            newAudio.src = window.URL.createObjectURL(autoMp3Files[elementBySpace[3].slice(0, -1)]);
+            mp3Files[elementBySpace[1]] = newAudio;
+        }
+
+        // PLAY_AUDIO
+        if (elementBySpace.length >= 2 && elementBySpace[0] == "PLAY_AUDIO") {
+            if (!elementBySpace[1].slice(0, -1) in mp3Files) {
+                ShowError(1);
+                return;
+            }
+            playingMp3.push(mp3Files[elementBySpace[1].slice(0, -1)]);
+            mp3Files[elementBySpace[1].slice(0, -1)].play();
+        }
     }
 
 }
@@ -853,6 +915,8 @@ function startProgram(contents) {
     varsInClassFunc = {};
     imgFiles = {};
     imgFilesInfo = {};
+    mp3Files = {};
+    playingMp3 = [];
 
     if (usingModules.indexOf("GAME") >= 0) {
         if (showCanvas != null) {
@@ -1492,6 +1556,36 @@ function doChangeValue(contents, codeKeyword) {
                 showCanvas.getContext("2d").restore();
             }
             
+            resultText = "";
+            break;
+        case "GAME_WRITE":
+            if (usingModules.indexOf("GAME") < 0) {
+                ShowError(22);
+                return [isDoing, ""];
+            }
+            var writeInfo = resultText.slice(11, -1).split(",");
+            if (writeInfo.length < 8) {
+                ShowError(6);
+                return [isDoing, ""];
+            }
+            var writeText = writeInfo[0];
+            var posX = writeInfo[1];
+            var posY = writeInfo[2];
+            var fontSize = writeInfo[3];
+            var r = writeInfo[4];
+            var g = writeInfo[5];
+            var b = writeInfo[6];
+            var a = writeInfo[7];
+            if (isNaN(Number(posX) + Number(posY) + Number(fontSize) + Number(r) + Number(g) + Number(b) + Number(a))) {
+                ShowError(3);
+                return [isDoing, ""];
+            }
+            isDoing = true;
+            showCanvas.getContext("2d").fillStyle = "rgba(" + Math.floor(r) + ", " + Math.floor(g) + ", " + Math.floor(b) + ", " + a + ")";
+            showCanvas.getContext("2d").font = "normal normal " + fontSize + "px sans-serif";
+            showCanvas.getContext("2d").textAlign = "center";
+            showCanvas.getContext("2d").textBaseline = "middle";
+            showCanvas.getContext("2d").fillText(writeText, posX, posY);
             resultText = "";
             break;
         case "GAME_MOUSE_X":
