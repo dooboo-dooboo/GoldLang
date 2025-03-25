@@ -142,12 +142,15 @@ GAME_CREATE_CIRCLE<50,75,35,55,155,255,1>;
 게임 화면 위에 원을 그립니다. 반지름이 35인 원을 좌표 (50, 75) 위치에 그립니다.
 rgb색상과 좌표 기준 등은 모두 GAME_CREATE_RECT 명령어와 동일합니다.
 
-GAME_DRAW_IMAGE<img, 100, 200, 50, 60>;
+GAME_DRAW_IMAGE<img,100,200,50,60>;
 게임 화면 위에 img 이름의 이미지 변수를 가로 50, 세로 60의 크기로 좌표 (100, 200)에 그립니다.
 이 명령어는 FILE 모듈을 불러와야 사용할 수 있습니다.
 
-GAME_DRAW_IMAGE<img, 100, 200, 50, 60, 45>;
+GAME_DRAW_IMAGE<img,100,200,50,60,45>;
 이전 명령어와 같게 동작하지만, 이미지를 45도 회전시켜 그립니다.
+
+GAME_WRITE<hello,100,200,35,55,155,255,1>;
+이 명령어는 (100, 200) 좌표에 35px 크기와 rgba 55,155,255,1를 가지는 문자 hello를 입력합니다.
 
 GAME_CLEAN;
 게임 화면 내부 요소를 모두 지웁니다.
@@ -196,6 +199,16 @@ SET_IMAGE img IS imageName;
 IMAGE_WIDTH<img>
 는 img 이름의 이미지 변수에 해당하는 이미지의 가로 길이를 반환합니다.
 IMAGE_HEIGHT<img>도 같은 방법으로 동작합니다.
+
+SET_BACKGROUND_MUSIC backgroundMusic;
+이 코드는 backgroundMusic이라는 이름의 mp3파일을 배경음악으로 설정합니다.
+설정 후 자동 반복 재생됩니다.
+
+SET_AUDIO audio IS effectAudio;
+이 코드는 audio라는 오디오 변수 내부에 effectAudio이라는 이름을 가진 파일을 넣습니다.
+
+PLAY_AUDIO audio;
+오디오 변수 audio에 담긴 오디오 파일을 재생합니다.
         </xmp>
     </div>
 </body>
